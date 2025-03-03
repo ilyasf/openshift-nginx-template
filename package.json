@@ -1,0 +1,15 @@
+{
+  "name": "openshift_versioned_nginx",
+  "version": "1.0.1",
+  "scripts": {
+    "build": "gulp build",
+    "release": "npm version patch && npm run build && ./deploy.sh"
+  },
+  "devDependencies": {
+    "typescript": "^4.0.0",
+    "gulp": "^4.0.2",
+    "gulp-cli": "^2.3.0",
+    "gulp-typescript": "^6.0.0-alpha.1",
+    "gulp-replace": "^1.0.0"
+  }
+}
