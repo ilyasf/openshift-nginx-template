@@ -7,27 +7,39 @@ COPY . .
 RUN npm run build
 
 # Step 2: Create the Nginx image
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
+FROM openshift/origin-cli:v3.11.0
 
-# Create necessary directories and adjust permissions
-# RUN mkdir -p /var/cache/nginx/client_temp \
-#     && chmod -R 777 /var/cache/nginx \
-#     && chown -R nginx:nginx /var/cache/nginx \
-#     && chown -R nginx:nginx /usr/share/nginx/html \
-#     && mkdir -p /var/run/nginx \
-#     && chown -R nginx:nginx /var/run/nginx
+ENV NGINX_VERSION=1.15.6-1.el7_4.ngx
 
-# # Copy custom Nginx configuration file
-# COPY nginx.conf /etc/nginx/nginx.conf
+# Configure CentOS repositories
+COPY ./nginx/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo
+COPY ./nginx/nginx.repo /etc/yum.repos.d/
 
-# # Copy custom entrypoint script
-# COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-# RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+RUN yum clean all && \
+    yum repolist && \
+    yum install yum-utils -y && \
+    yum install -y nginx
 
-# USER nginx
+# # Create necessary directories and set permissions
+RUN mkdir -p /var/lib/nginx/router/{certs,cacerts} && \
+    mkdir -p /var/lib/nginx/{conf,run,log,cache} && \
+    touch /var/lib/nginx/conf/nginx.conf && \
+    setcap 'cap_net_bind_service=ep' /usr/sbin/nginx && \
+    chown -R :0 /var/lib/nginx && \
+    chmod -R g+w /var/lib/nginx && \
+    ln -sf /var/lib/nginx/log/error.log /var/log/nginx/error.log
 
-# ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-# CMD ["nginx", "-g", "daemon off;"]
+COPY ./nginx /var/lib/nginx/
+COPY --from=build /app/dist /var/lib/nginx/router/html
 
-EXPOSE 80
+LABEL io.k8s.display-name="OpenShift Origin NGINX Router" \
+      io.k8s.description="This is a component of OpenShift Origin and contains an NGINX instance that automatically exposes services within the cluster through routes, and offers TLS termination, reencryption, or SNI-passthrough on ports 80 and 443."
+
+USER 1001
+EXPOSE 80 443
+
+WORKDIR /var/lib/nginx/conf
+ENV TEMPLATE_FILE=/var/lib/nginx/conf/nginx-config.template \
+    RELOAD_SCRIPT=/var/lib/nginx/reload-nginx
+
+ENTRYPOINT ["/usr/bin/openshift-router", "--working-dir=/var/lib/nginx/router"]
