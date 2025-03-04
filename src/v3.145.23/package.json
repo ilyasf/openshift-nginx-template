@@ -1,0 +1,12 @@
+{
+    "name": "openshift_versioned_nginx",
+    "version": "3.145.23",
+    "description": "",
+    "main": "index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "",
+    "license": "ISC",
+    "dependencies": {}
+}

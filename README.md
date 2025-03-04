@@ -1,5 +1,61 @@
 # OpenShift Versioned Nginx
 
+A multi-version web application setup using TypeScript and Nginx, designed for OpenShift deployment.
+
+## Project Structure
+
+```
+.
+├── src/
+│   ├── app.ts
+│   ├── index.html
+│   ├── v3.145.22/
+│   │   ├── app.ts
+│   │   └── index.html
+│   └── v3.145.23/
+│       ├── app.ts
+│       └── index.html
+├── dist/           # Generated after build
+├── gulpfile.js
+├── tsconfig.json
+└── package.json
+```
+
+## Build Process
+
+The project uses Gulp to:
+- Compile TypeScript files
+- Replace version placeholders with actual versions from package.json
+- Copy HTML files
+- Create version-specific directories in the dist folder
+
+### Build Commands
+
+```bash
+# Install dependencies
+npm install
+
+# Build the project
+gulp build
+```
+
+### Output Structure
+
+After building, the `dist` directory will contain:
+
+```
+dist/
+├── app.js              # Root level application
+├── index.html         # Root level HTML
+├── favicon.ico        # Site favicon
+├── v3.145.22/        # Version-specific builds
+│   ├── app.js
+│   └── index.html
+└── v3.145.23/
+    ├── app.js
+    └── index.html
+```
+
 ## Deployment
 
 To deploy a new version of the application, run the following command:
