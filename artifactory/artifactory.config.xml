@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<config xmlns="http://artifactory.jfrog.org/xsd/3.1.26" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <offlineMode>false</offlineMode>
+    <helpLinksEnabled>true</helpLinksEnabled>
+    <fileUploadMaxSizeMb>100</fileUploadMaxSizeMb>
+    <dateFormat>dd-MM-yy HH:mm:ss z</dateFormat>
+    <addons>
+        <showAddonsInfo>true</showAddonsInfo>
+        <showAddonsInfoCookie>1d</showAddonsInfoCookie>
+    </addons>
+    <security>
+        <anonAccessEnabled>false</anonAccessEnabled>
+        <hideUnauthorizedResources>false</hideUnauthorizedResources>
+        <passwordSettings>
+            <encryptionPolicy>supported</encryptionPolicy>
+            <expirationPolicy>
+                <enabled>false</enabled>
+                <passwordMaxAge>60</passwordMaxAge>
+                <notifyByEmail>true</notifyByEmail>
+            </expirationPolicy>
+        </passwordSettings>
+    </security>
+</config> 

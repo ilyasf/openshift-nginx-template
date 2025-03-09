@@ -1,0 +1,42 @@
+version: '3.8'
+services:
+  artifactory:
+    build:
+      context: ./artifactory
+      dockerfile: Dockerfile
+    container_name: artifactory
+    ports:
+      - "8081:8081"
+      - "8082:8082"
+    volumes:
+      - ./artifactory_tmp:/var/opt/jfrog/artifactory
+    environment:
+      - ARTIFACTORY_HOME=/var/opt/jfrog/artifactory
+      - JF_ROUTER_ENTRYPOINTS_EXTERNALPORT=8082
+    networks:
+      - app-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/artifactory/api/system/ping", "||", "exit", "1"]
+      interval: 1m
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  nginx-versions:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      artifactory:
+        condition: service_healthy
+    networks:
+      - app-network
+    environment:
+      - ARTIFACTORY_URL=http://artifactory:8081
+
+networks:
+  app-network:
+    driver: bridge 

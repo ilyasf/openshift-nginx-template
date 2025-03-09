@@ -1,143 +1,156 @@
-# OpenShift Versioned Nginx
+# Versioned Nginx with Artifactory
 
-A multi-version web application setup using TypeScript and Nginx, designed for OpenShift deployment.
+This project demonstrates versioned static content delivery using Nginx and Artifactory.
 
 ## Project Structure
-
 ```
 .
-├── src/
-│   ├── app.ts
-│   ├── index.html
-│   ├── v3.145.22/
-│   │   ├── app.ts
+├── demo/                # Demo versions
+│   ├── 1.0.0/
 │   │   └── index.html
-│   └── v3.145.23/
-│       ├── app.ts
+│   ├── 1.0.1/
+│   │   └── index.html
+│   └── 1.0.2/
 │       └── index.html
-├── dist/           # Generated after build
-├── gulpfile.js
-├── tsconfig.json
-└── package.json
+├── artifactory/        # Artifactory configuration
+│   ├── Dockerfile
+│   └── artifactory.config.xml
+├── docker-compose.yml   # Docker compose configuration
+├── Dockerfile          # Nginx container configuration
+├── package.json        # Version configuration
+├── apply-versions.sh   # Script to fetch and apply versions
+└── setup.sh           # Setup script
 ```
 
-## Build Process
+## Quick Start
 
-The project uses Gulp to:
-- Compile TypeScript files
-- Replace version placeholders with actual versions from package.json
-- Copy HTML files
-- Create version-specific directories in the dist folder
+1. **Setup the environment:**
+```bash
+# Make scripts executable
+chmod +x setup.sh
+./setup.sh
+```
 
-### Build Commands
+2. **Start the containers:**
+```bash
+# Start both Artifactory and Nginx
+docker-compose up -d
+```
+
+3. **Configure Artifactory:**
+- Wait for Artifactory to start (2-3 minutes)
+- Open http://localhost:8081/artifactory
+- Login with admin/password
+- Create a new Generic repository named "versioned-assets"
+
+4. **Package and upload versions:**
+```bash
+# Create archives from demo versions
+cd demo/1.0.0 && tar -czf ../../1.0.0.tar.gz . && cd ../..
+cd demo/1.0.1 && tar -czf ../../1.0.1.tar.gz . && cd ../..
+cd demo/1.0.2 && tar -czf ../../1.0.2.tar.gz . && cd ../..
+
+# Upload to Artifactory
+curl -u admin:password -X PUT "http://localhost:8081/artifactory/versioned-assets/web-assets/1.0.0.tar.gz" -T 1.0.0.tar.gz
+curl -u admin:password -X PUT "http://localhost:8081/artifactory/versioned-assets/web-assets/1.0.1.tar.gz" -T 1.0.1.tar.gz
+curl -u admin:password -X PUT "http://localhost:8081/artifactory/versioned-assets/web-assets/1.0.2.tar.gz" -T 1.0.2.tar.gz
+```
+
+5. **Access the versions:**
+- http://localhost/1.0.0
+- http://localhost/1.0.1
+- http://localhost/1.0.2
+
+## Managing Versions
+
+### Adding a New Version
+
+1. Create a new version directory:
+```bash
+mkdir -p demo/1.0.3
+```
+
+2. Add your content:
+```bash
+echo "<html><body><h1>Version 1.0.3</h1></body></html>" > demo/1.0.3/index.html
+```
+
+3. Package and upload:
+```bash
+cd demo/1.0.3 && tar -czf ../../1.0.3.tar.gz . && cd ../..
+curl -u admin:password -X PUT "http://localhost:8081/artifactory/versioned-assets/web-assets/1.0.3.tar.gz" -T 1.0.3.tar.gz
+```
+
+4. Update package.json with the new version:
+```json
+{
+  "versionsConfig": {
+    "versions": [
+      {
+        "version": "1.0.3",
+        "releaseDate": "2024-03-10"
+      },
+      ...
+    ]
+  }
+}
+```
+
+5. Restart the nginx container:
+```bash
+docker-compose restart nginx-versions
+```
+
+## Useful Commands
 
 ```bash
-# Install dependencies
-npm install
+# View logs
+docker-compose logs -f
 
-# Build the project
-gulp build
+# Restart specific container
+docker-compose restart nginx-versions
+docker-compose restart artifactory
+
+# Stop all containers
+docker-compose down
+
+# Rebuild and restart
+docker-compose up -d --build
+
+# Clean up everything
+docker-compose down
+rm -rf artifactory_tmp
 ```
 
-### Output Structure
+## Troubleshooting
 
-After building, the `dist` directory will contain:
+### Version not showing up
+```bash
+# Check nginx logs
+docker-compose logs nginx-versions
 
-```
-dist/
-├── app.js              # Root level application
-├── index.html         # Root level HTML
-├── favicon.ico        # Site favicon
-├── v3.145.22/        # Version-specific builds
-│   ├── app.js
-│   └── index.html
-└── v3.145.23/
-    ├── app.js
-    └── index.html
+# Verify file in Artifactory
+curl -u admin:password -X GET "http://localhost:8081/artifactory/versioned-assets/web-assets/1.0.1.tar.gz"
 ```
 
-## Deployment
+### Artifactory issues
+```bash
+# Check Artifactory logs
+docker-compose logs artifactory
 
-To deploy a new version of the application, run the following command:
-
-```powershell
-./deploy.ps1
+# Verify Artifactory is running
+docker-compose ps
 ```
 
-This will:
-1. Read the version from `package.json`.
-2. Log in to the OpenShift registry.
-3. Build the Docker image.
-4. Tag and push the Docker image to the OpenShift registry.
-5. Verify the Docker image in the OpenShift registry.
-6. Set the OpenShift project.
-7. Delete existing resources if they exist.
-8. Deploy the application to OpenShift.
-9. Expose the service with a versioned hostname.
+### Network issues
+```bash
+# Check if containers are on the same network
+docker network inspect app-network
 
-You can access the deployed versions at:
-- `http://localhost-1-0-0/index.html`
-- `http://localhost-1-0-1/index.html`
-- etc.
-
-### Creating the OpenShift Project
-
-Ensure that the OpenShift project `testing-nginx-with-version` exists. If it does not exist, create it using the following command:
-
-```sh
-oc new-project testing-nginx-with-version
+# Verify Artifactory is accessible from nginx container
+docker-compose exec nginx-versions curl -I http://artifactory:8081
 ```
-
-### Getting the OpenShift Registry URL
-
-Get the OpenShift registry URL using the following command:
-
-```sh
-oc get route default-route -n openshift-image-registry --template='{{ .spec.host }}'
-```
-
-### Logging in to the OpenShift Registry
-
-Ensure you are logged in to the OpenShift registry using the following command:
-
-```sh
-docker login -u $(oc whoami) -p $(oc whoami -t) <registry-url>
-```
-
-### Changing PowerShell Execution Policy
-
-If you encounter an error about running scripts being disabled, you need to change the PowerShell execution policy. Open PowerShell as an administrator and run the following command:
-
-```powershell
-Set-ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-## Release
-
-To release a new version of the application, run the following command:
-
-```powershell
-npm run release
-```
-
-This will:
-1. Update the version in `package.json`.
-2. Build the Docker image.
-3. Tag and push the Docker image to the OpenShift registry.
-4. Deploy the new version to OpenShift.
-
-## Building the Project
-
-To build the project, run the following command:
-
-```powershell
-npm run build
-```
-
-This will:
-1. Compile the TypeScript files.
-2. Copy `index.html` to the `dist` folder.
 
 ## License
 
-This project is licensed under the Educational Use License. You may use, copy, modify, and distribute this project for educational purposes only. For more information, see the [LICENSE](./LICENSE) file.
+This project is licensed under the MIT License. See the [LICENSE](./LICENSE) file for details.

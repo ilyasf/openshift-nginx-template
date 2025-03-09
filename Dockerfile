@@ -20,7 +20,7 @@ RUN yum clean all && \
     yum install yum-utils -y && \
     yum install -y nginx
 
-# # Create necessary directories and set permissions
+# Create necessary directories and set permissions
 RUN mkdir -p /var/lib/nginx/router/{certs,cacerts} && \
     mkdir -p /var/lib/nginx/{conf,run,log,cache} && \
     touch /var/lib/nginx/conf/nginx.conf && \
@@ -28,6 +28,15 @@ RUN mkdir -p /var/lib/nginx/router/{certs,cacerts} && \
     chown -R :0 /var/lib/nginx && \
     chmod -R g+w /var/lib/nginx && \
     ln -sf /var/lib/nginx/log/error.log /var/log/nginx/error.log
+
+# Copy versioning files
+COPY package.json /var/lib/nginx/router/package.json
+COPY apply-versions.sh /var/lib/nginx/router/apply-versions.sh
+COPY docker-entrypoint.sh /var/lib/nginx/router/docker-entrypoint.sh
+
+# Make scripts executable
+RUN chmod +x /var/lib/nginx/router/apply-versions.sh && \
+    chmod +x /var/lib/nginx/router/docker-entrypoint.sh
 
 COPY ./nginx /var/lib/nginx/
 COPY --from=build /app/dist /var/lib/nginx/router/html
@@ -38,8 +47,9 @@ LABEL io.k8s.display-name="OpenShift Origin NGINX Router" \
 USER 1001
 EXPOSE 80 443
 
-WORKDIR /var/lib/nginx/conf
+WORKDIR /var/lib/nginx/router
 ENV TEMPLATE_FILE=/var/lib/nginx/conf/nginx-config.template \
     RELOAD_SCRIPT=/var/lib/nginx/reload-nginx
 
-ENTRYPOINT ["/usr/bin/openshift-router", "--working-dir=/var/lib/nginx/router"]
+# Change ENTRYPOINT to run our script
+ENTRYPOINT ["/var/lib/nginx/router/docker-entrypoint.sh"]

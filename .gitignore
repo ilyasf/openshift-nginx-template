@@ -26,3 +26,7 @@ jspm_packages/
 
 # MacOS files
 .DS_Store
+
+artifactory_tmp/
+demo/
+*.tar.gz
