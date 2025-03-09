@@ -13,20 +13,7 @@
     "gulp-replace": "^1.0.0"
   },
   "versionsConfig": {
-    "versions": [
-      {
-        "version": "1.0.1",
-        "releaseDate": "2025-03-09"
-      },
-      {
-        "version": "1.0.0",
-        "releaseDate": "2025-03-08"
-      },
-      {
-        "version": "0.0.1",
-        "releaseDate": "2025-03-07"
-      }
-    ],
+    "versions": ["1.0.0", "1.0.1", "1.0.2"],
     "artifactoryPath": "localhost:8081/artifactory/versioned-assets/web-assets"
   }
 }

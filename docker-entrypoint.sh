@@ -1,7 +1,7 @@
 #!/bin/sh
 
-# Запускаем скрипт для загрузки версий
-/app/apply-versions.sh
+# Run version download script
+/etc/nginx/apply-versions.sh
 
-# Запускаем nginx на переднем плане
+# Start nginx
 exec nginx -g 'daemon off;' 

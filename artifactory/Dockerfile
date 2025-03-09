@@ -1,4 +1,4 @@
-FROM docker.bintray.io/jfrog/artifactory-oss:latest
+FROM docker.jfrog.io/artifactory/artifactory-oss:latest
 
 # Set environment variables
 ENV ARTIFACTORY_HOME=/var/opt/jfrog/artifactory \
@@ -7,10 +7,9 @@ ENV ARTIFACTORY_HOME=/var/opt/jfrog/artifactory \
 # Create necessary directories
 USER root
 RUN mkdir -p /var/opt/jfrog/artifactory/etc/artifactory \
-    && chown -R artifactory:artifactory /var/opt/jfrog/artifactory \
-    && apt-get update \
-    && apt-get install -y curl
+    && chown -R artifactory:artifactory /var/opt/jfrog/artifactory
 
+# Curl should already be installed in this image
 # Switch back to artifactory user
 USER artifactory
 

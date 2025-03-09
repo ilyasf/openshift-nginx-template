@@ -37,6 +37,9 @@ create_repository() {
     curl -u admin:password -X PUT "http://localhost:8081/artifactory/api/repositories/versioned-assets" \
         -H "Content-Type: application/json" \
         -d '{"key": "versioned-assets","rclass": "local","packageType": "generic"}' || true
+    
+    # Wait a moment for repository to be ready
+    sleep 5
 }
 
 # Package versions
@@ -55,11 +58,25 @@ fi
 
 # Upload archives to Artifactory
 echo "Uploading archives to Artifactory..."
-curl -u admin:password -X PUT "http://localhost:8081/artifactory/versioned-assets/web-assets/1.0.0.tar.gz" -T 1.0.0.tar.gz
-curl -u admin:password -X PUT "http://localhost:8081/artifactory/versioned-assets/web-assets/1.0.1.tar.gz" -T 1.0.1.tar.gz
-curl -u admin:password -X PUT "http://localhost:8081/artifactory/versioned-assets/web-assets/1.0.2.tar.gz" -T 1.0.2.tar.gz
+for VERSION in 1.0.0 1.0.1 1.0.2; do
+    UPLOAD_URL="http://localhost:8081/artifactory/versioned-assets/web-assets/${VERSION}.tar.gz"
+    echo "Uploading $VERSION to $UPLOAD_URL"
+    curl -u admin:password -X PUT "$UPLOAD_URL" -T "${VERSION}.tar.gz"
+    
+    # Verify upload
+    if curl -s -I -u admin:password "$UPLOAD_URL" | grep -q "HTTP/1.1 200"; then
+        echo "✅ Version $VERSION successfully uploaded and verified"
+    else
+        echo "❌ Failed to verify version $VERSION"
+    fi
+done
 
-echo "Setup complete! You can now:"
+echo "Setup complete! You can access the versions at:"
+echo "http://localhost:8081/artifactory/versioned-assets/web-assets/1.0.0.tar.gz"
+echo "http://localhost:8081/artifactory/versioned-assets/web-assets/1.0.1.tar.gz"
+echo "http://localhost:8081/artifactory/versioned-assets/web-assets/1.0.2.tar.gz"
+
+echo "You can now:"
 echo "1. Start nginx container: docker-compose up -d nginx-versions"
 echo "2. Access versions at:"
 echo "   - http://localhost/1.0.0"
